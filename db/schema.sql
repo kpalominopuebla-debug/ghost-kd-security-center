@@ -1,0 +1,116 @@
+CREATE TABLE IF NOT EXISTS roles (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(80) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  display_name VARCHAR(160),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, role_id)
+);
+
+CREATE TABLE IF NOT EXISTS assets (
+  id UUID PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  type VARCHAR(40) NOT NULL,
+  environment VARCHAR(40),
+  url TEXT,
+  criticality INTEGER NOT NULL DEFAULT 3,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS scans (
+  id UUID PRIMARY KEY,
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  scan_type VARCHAR(60) NOT NULL,
+  status VARCHAR(40) NOT NULL,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS findings (
+  id UUID PRIMARY KEY,
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  scan_id UUID REFERENCES scans(id) ON DELETE SET NULL,
+  title VARCHAR(300) NOT NULL,
+  severity VARCHAR(30) NOT NULL,
+  cvss NUMERIC(4,2),
+  confidence NUMERIC(5,4),
+  status VARCHAR(40) NOT NULL DEFAULT 'NEW',
+  evidence TEXT,
+  impact TEXT,
+  recommendation TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS finding_status_history (
+  id BIGSERIAL PRIMARY KEY,
+  finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
+  old_status VARCHAR(40),
+  new_status VARCHAR(40) NOT NULL,
+  changed_by UUID,
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGSERIAL PRIMARY KEY,
+  actor_id UUID,
+  action VARCHAR(120) NOT NULL,
+  resource_type VARCHAR(80),
+  resource_id VARCHAR(120),
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS alerts (
+  id BIGSERIAL PRIMARY KEY,
+  finding_id UUID REFERENCES findings(id) ON DELETE SET NULL,
+  severity VARCHAR(30) NOT NULL,
+  title VARCHAR(300) NOT NULL,
+  acknowledged BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id UUID PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  format VARCHAR(20) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS qa_tests (
+  id UUID PRIMARY KEY,
+  finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
+  title VARCHAR(300) NOT NULL,
+  preconditions TEXT,
+  steps TEXT,
+  expected_result TEXT,
+  status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ai_requests (
+  id UUID PRIMARY KEY,
+  finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
+  provider VARCHAR(50) NOT NULL,
+  model VARCHAR(120),
+  request_type VARCHAR(80) NOT NULL,
+  prompt_version VARCHAR(80) NOT NULL,
+  status VARCHAR(30) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO roles(name) VALUES ('ADMIN'), ('ANALYST'), ('VIEWER')
+ON CONFLICT (name) DO NOTHING;

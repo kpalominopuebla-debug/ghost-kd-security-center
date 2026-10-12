@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# No publicar todavia: contiene la configuracion de la base de datos
+backend/src/database.ts
+# Archivos generados por Nuxt
+.nuxt/
+.output/
+.nitro/
+.cache/
+coverage/
+
+ghost/
+kd/
