@@ -1,11 +1,12 @@
 {
   "name": "ghost-kd-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
